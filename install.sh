@@ -28,22 +28,15 @@ echo "[*] Baixando..."
 rm -rf "$TMP"
 mkdir -p "$TMP"
 
-curl -fL "$URL" -o "$TMP/backup_20260818_230405.zip"
+curl -fL "$URL" -o "$TMP/backup.zip"
 
 echo "[*] Extraindo..."
 
-unzip -q -o "$TMP/backup_20260818_230405.zip" -d "$TMP"
-
-ROOT="$TMP/backup_20260818_230405"
-
-if [ ! -d "$ROOT" ]; then
-    echo "[!] Estrutura do ZIP inválida."
-    exit 1
-fi
+unzip -q -o "$TMP/backup.zip" -d "$TMP/extracted"
 
 echo "[*] Instalando em $DIR..."
 
-cp -af "$ROOT"/. "$DIR"/
+cp -af "$TMP/extracted"/. "$DIR"/
 
 rm -rf "$TMP"
 
@@ -51,12 +44,4 @@ echo "[✓] Instalação concluída."
 echo "[*] Iniciando app..."
 echo
 
-# Executa usando o terminal real
-if [ -c /dev/tty ]; then
-    python3 "$DIR/app.py" < /dev/tty > /dev/tty 2>&1
-else
-    echo "[!] Terminal interativo não encontrado."
-    echo "[!] Execute diretamente:"
-    echo "    python3 $DIR/app.py"
-    exit 1
-fi
+exec python3 "$DIR/app.py"
