@@ -8,32 +8,20 @@ DIR="$(pwd)"
 
 echo "[*] Verificando ambiente..."
 
-# Verifica se está em uma pasta válida
-if [ ! -d "$DIR" ]; then
-    echo "[!] Diretório inválido."
-    exit 1
-fi
-
-# Instala curl
-if ! command -v curl >/dev/null 2>&1; then
-    echo "[*] Instalando curl..."
+command -v curl >/dev/null 2>&1 || {
     apt update
     apt install -y curl
-fi
+}
 
-# Instala unzip
-if ! command -v unzip >/dev/null 2>&1; then
-    echo "[*] Instalando unzip..."
+command -v unzip >/dev/null 2>&1 || {
     apt update
     apt install -y unzip
-fi
+}
 
-# Instala Python
-if ! command -v python3 >/dev/null 2>&1; then
-    echo "[*] Instalando Python3..."
+command -v python3 >/dev/null 2>&1 || {
     apt update
     apt install -y python3
-fi
+}
 
 echo "[*] Baixando..."
 
@@ -42,42 +30,33 @@ mkdir -p "$TMP"
 
 curl -fL "$URL" -o "$TMP/main.zip"
 
-# Verifica se o arquivo realmente é um ZIP
-if ! unzip -t "$TMP/main.zip" >/dev/null 2>&1; then
-    echo "[!] O download não é um ZIP válido."
-    rm -rf "$TMP"
-    exit 1
-fi
-
 echo "[*] Extraindo..."
 
 unzip -q -o "$TMP/main.zip" -d "$TMP"
 
 ROOT="$TMP/Gradlexed-main"
 
-# Verifica estrutura
 if [ ! -d "$ROOT" ]; then
-    echo "[!] Pasta Gradlexed-main não encontrada no ZIP."
-    rm -rf "$TMP"
+    echo "[!] Estrutura do ZIP inválida."
     exit 1
 fi
 
-echo "[*] Instalando em:"
-echo "    $DIR"
+echo "[*] Instalando em $DIR..."
 
-# Copia TUDO, incluindo arquivos ocultos
 cp -af "$ROOT"/. "$DIR"/
 
-# Limpa temporários
 rm -rf "$TMP"
 
-echo "[✓] Arquivos instalados."
-echo "[*] Executando app.py..."
+echo "[✓] Instalação concluída."
+echo "[*] Iniciando app..."
 echo
 
-# Garante que o app receba stdin do terminal
-if [ -e /dev/tty ]; then
-    exec python3 "$DIR/app.py" </dev/tty
+# Executa usando o terminal real
+if [ -c /dev/tty ]; then
+    python3 "$DIR/app.py" < /dev/tty > /dev/tty 2>&1
 else
-    exec python3 "$DIR/app.py"
+    echo "[!] Terminal interativo não encontrado."
+    echo "[!] Execute diretamente:"
+    echo "    python3 $DIR/app.py"
+    exit 1
 fi
