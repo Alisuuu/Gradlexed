@@ -318,6 +318,19 @@ def install_sdk():
 
     log("Extraindo...")
     subprocess.run(["rm", "-rf", "/tmp/sdk"], check=False)
+    
+    result = subprocess.run(["file", tmp], capture_output=True, text=True)
+    if "Zip" not in result.stdout and "zip" not in result.stdout.lower():
+        err(f"Arquivo nao e zip valido: {result.stdout.strip()[:60]}")
+        subprocess.run(["rm", "-f", tmp], check=False)
+        return False
+
+    result = subprocess.run(["unzip", "-t", tmp], capture_output=True, text=True)
+    if result.returncode != 0:
+        err(f"Zip corrompido, removendo...")
+        subprocess.run(["rm", "-f", tmp], check=False)
+        return False
+
     result = subprocess.run(["unzip", "-qo", tmp, "-d", "/tmp/sdk"], capture_output=True, text=True)
     if result.returncode != 0:
         err(f"Falha ao extrair: {result.stderr.strip()[:80]}")
