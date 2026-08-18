@@ -3,7 +3,7 @@
 set -e
 
 URL="https://github.com/Alisuuu/Gradlexed/releases/download/0.5/backup_20260818_230405.zip"
-TMP="/tmp/gradlexed"
+TMP="/tmp/backup_20260818_230405"
 DIR="$(pwd)"
 
 echo "[*] Verificando ambiente..."
