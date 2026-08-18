@@ -15,7 +15,7 @@ def buildar():
         arg = sys.argv[1]
         tipo = {"1": "debug", "2": "release", "3": "appbundle"}.get(arg, arg)
     else:
-        print("=== Build ===")
+        print("=== Alauncher Build ===")
         print("  1 - Debug APK")
         print("  2 - Release APK (assinado)")
         print("  3 - App Bundle (.aab)")

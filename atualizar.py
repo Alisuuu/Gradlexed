@@ -123,8 +123,8 @@ def atualizar():
 
     arquivos_ferramenta = [
         "app.py", "build-apk.sh", "editar-informacoes.py", "fix-adb.sh",
-        "configurar_de.py", "configurar_projeto.py", "buildar.py",
-        "AGENTS.md", "opencode.json", "atualizar.py", "version.txt",
+        "configurar_de.py", "buildar.py", "configurar_gradle84.py",
+        "AGENTS.md", "opencode.json", "atualizar.py",
     ]
 
     print(f"  {A}→{N} Substituindo arquivos...")
