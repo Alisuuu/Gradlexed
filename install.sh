@@ -28,13 +28,13 @@ echo "[*] Baixando..."
 rm -rf "$TMP"
 mkdir -p "$TMP"
 
-curl -fL "$URL" -o "$TMP/main.zip"
+curl -fL "$URL" -o "$TMP/backup_20260818_230405.zip"
 
 echo "[*] Extraindo..."
 
-unzip -q -o "$TMP/main.zip" -d "$TMP"
+unzip -q -o "$TMP/backup_20260818_230405.zip" -d "$TMP"
 
-ROOT="$TMP/Gradlexed-main"
+ROOT="$TMP/backup_20260818_230405"
 
 if [ ! -d "$ROOT" ]; then
     echo "[!] Estrutura do ZIP inválida."
