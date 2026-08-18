@@ -2,7 +2,7 @@
 
 set -e
 
-URL="https://github.com/Alisuuu/Gradlexed/archive/refs/heads/main.zip"
+URL="https://github.com/Alisuuu/Gradlexed/releases/download/0.5/backup_20260818_230405.zip"
 TMP="/tmp/gradlexed"
 DIR="$(pwd)"
 
