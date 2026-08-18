@@ -4,159 +4,69 @@ import shutil
 import shlex
 
 BASE = os.path.dirname(os.path.abspath(__file__))
+ALISU = os.path.join(BASE, ".alisu")
 PROJETO = os.path.join(BASE, "projeto")
-BUILD_APK = os.path.join(BASE, "build-apk.sh")
-EDITAR = os.path.join(BASE, "editar-informacoes.py")
-FIX_ADB = os.path.join(BASE, "fix-adb.sh")
-CONFIGURAR_DE = os.path.join(BASE, "configurar_de.py")
-ATUALIZAR = os.path.join(BASE, "atualizar.py")
+BUILD_APK = os.path.join(ALISU, "build-apk.sh")
+EDITAR = os.path.join(ALISU, "editar-informacoes.py")
+FIX_ADB = os.path.join(ALISU, "fix-adb.sh")
+CONFIGURAR_PROJETO = os.path.join(ALISU, "configurar_projeto.py")
+CONFIGURAR_DE = os.path.join(ALISU, "configurar_de.py")
+ATUALIZAR = os.path.join(ALISU, "atualizar.py")
+PACK = os.path.join(ALISU, "pack.py")
+RESTAURAR = os.path.join(ALISU, "restaurar_backup.py")
 
 OPENCODE_DIR = os.path.expanduser("~/.opencode/bin")
 os.environ["PATH"] = OPENCODE_DIR + ":" + os.environ["PATH"]
 
-R = "\033[1;31m"     # vermelho
-B = "\033[1;34m"     # azul
-A = "\033[36m"       # ciano pra detalhes
+SCRIPTS_ANTIGOS = [
+    "configurar_projeto.py",
+    "configurar_de.py",
+    "editar-informacoes.py",
+    "fix-adb.sh",
+    "atualizar.py",
+    "buildar.py",
+    "build-apk.sh",
+    "projeto/pack.py",
+    "projeto/restaurar_backup.py",
+]
+
+def limpar_scripts_antigos():
+    for nome in SCRIPTS_ANTIGOS:
+        caminho = os.path.join(BASE, nome)
+        if os.path.isfile(caminho):
+            os.remove(caminho)
+
+limpar_scripts_antigos()
+
+R = "\033[1;31m"
+B = "\033[1;34m"
+A = "\033[36m"
+OK = "\033[1;32m"
 N = "\033[0m"
 
 def h(text):
-    print(f"\n  {B}{'─'*40}{N}")
+    print(f"\n  {B}{'─'*44}{N}")
     print(f"  {B}{text}{N}")
-    print(f"  {B}{'─'*40}{N}")
+    print(f"  {B}{'─'*44}{N}")
 
 def run(cmd, check=True, cwd=PROJETO):
     subprocess.run(cmd, shell=True, check=check, cwd=cwd, executable="/bin/bash")
 
-def instalar_java():
-    h("INSTALAR JAVA")
-    if shutil.which("java"):
-        print(f"  {R}✔{N} Java já está instalado!\n")
-        return
-    print(f"  {A}→{N} Instalando Java...")
-    if shutil.which("pkg"):
-        run("pkg install openjdk-17 -y", cwd=os.path.expanduser("~"))
-    elif shutil.which("apt-get"):
-        run("apt-get install -y openjdk-17-jdk-headless", cwd=os.path.expanduser("~"), check=False)
-    else:
-        print(f"\n  {R}✗{N} Gerenciador de pacotes não encontrado!")
-        raise SystemExit(1)
-    if not shutil.which("java"):
-        print(f"\n  {R}✗{N} Falha ao instalar Java!")
-        raise SystemExit(1)
-    print(f"\n  {R}✔{N} Java instalado com sucesso!\n")
-
-def instalar_opencode():
-    h("INSTALAR OPENCODE")
-    if shutil.which("opencode"):
-        print(f"  {R}✔{N} opencode já está instalado!\n")
-        return
-    print(f"  {A}→{N} Baixando opencode...")
-    run("curl -fsSL https://opencode.ai/install | bash", cwd=os.path.expanduser("~"))
-    if not shutil.which("opencode"):
-        print(f"\n  {R}✗{N} Falha ao instalar opencode!")
-        raise SystemExit(1)
-    print(f"  {A}→{N} Configurando PATH no .bashrc...")
-    bashrc = os.path.expanduser("~/.bashrc")
-    export_line = 'export PATH="$HOME/.opencode/bin:$PATH"'
-    if os.path.exists(bashrc):
-        with open(bashrc, "r") as f:
-            if export_line not in f.read():
-                with open(bashrc, "a") as f:
-                    f.write(f"\n{export_line}\n")
-                run("source ~/.bashrc", check=False)
-    else:
-        with open(bashrc, "w") as f:
-            f.write(f"\n{export_line}\n")
-    print(f"\n  {R}✔{N} opencode instalado com sucesso!\n")
-
-def instalar_git():
-    h("INSTALAR GIT")
-    if shutil.which("git"):
-        print(f"  {R}✔{N} git já está instalado!\n")
-        return
-    print(f"  {A}→{N} Instalando git...")
-    if shutil.which("pkg"):
-        run("pkg install git -y", cwd=os.path.expanduser("~"))
-    elif shutil.which("apt-get"):
-        run("apt-get install -y git", cwd=os.path.expanduser("~"), check=False)
-    else:
-        print(f"\n  {R}✗{N} Gerenciador de pacotes não encontrado!")
-        raise SystemExit(1)
-    if not shutil.which("git"):
-        print(f"\n  {R}✗{N} Falha ao instalar git!")
-        raise SystemExit(1)
-    print(f"\n  {R}✔{N} git instalado com sucesso!\n")
-
-ANDROID_HOME = "/opt/android-sdk"
-SDK_TOOLS_URL = "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-
-def instalar_android_sdk():
-    h("INSTALAR ANDROID SDK")
-    sdkmanager = os.path.join(ANDROID_HOME, "cmdline-tools", "latest", "bin", "sdkmanager")
-    if os.path.exists(sdkmanager):
-        print(f"  {R}✔{N} Android SDK já está instalado!\n")
-        return
-    print(f"  {A}→{N} Baixando Android SDK cmdline-tools...")
-    os.makedirs(ANDROID_HOME, exist_ok=True)
-    tmp = "/tmp/cmdline-tools.zip"
-    run(f"curl -fsSL -o {tmp} {SDK_TOOLS_URL}", cwd=os.path.expanduser("~"), check=False)
-    if not os.path.exists(tmp):
-        print(f"\n  {R}✗{N} Falha ao baixar cmdline-tools!")
-        raise SystemExit(1)
-    print(f"  {A}→{N} Extraindo...")
-    run(f"unzip -qo {tmp} -d /tmp/sdk", cwd=os.path.expanduser("~"), check=False)
-    os.makedirs(os.path.join(ANDROID_HOME, "cmdline-tools"), exist_ok=True)
-    run(f"rm -rf {os.path.join(ANDROID_HOME, 'cmdline-tools', 'latest')}", cwd=os.path.expanduser("~"), check=False)
-    run(f"mv /tmp/sdk/cmdline-tools {os.path.join(ANDROID_HOME, 'cmdline-tools', 'latest')}", cwd=os.path.expanduser("~"), check=False)
-    run(f"rm -rf /tmp/sdk {tmp}", cwd=os.path.expanduser("~"), check=False)
-    print(f"  {A}→{N} Aceitando licenças...")
-    run(f"yes | {sdkmanager} --licenses > /dev/null 2>&1", cwd=os.path.expanduser("~"), check=False)
-    print(f"  {A}→{N} Instalando platform-tools, build-tools;36.0.0, platforms;android-34...")
-    run(f"{sdkmanager} 'platform-tools' 'build-tools;36.0.0' 'platforms;android-34'", cwd=os.path.expanduser("~"), check=False)
-    aapt2_arm64 = "/usr/lib/android-sdk/build-tools/debian/aapt2"
-    if not os.path.exists(aapt2_arm64):
-        print(f"  {A}→{N} Instalando aapt2 ARM64 do sistema...")
-        if shutil.which("apt-get"):
-            run("apt-get install -y aapt", cwd=os.path.expanduser("~"), check=False)
-    local_props = os.path.join(PROJETO, "local.properties")
-    with open(local_props, "w") as f:
-        f.write(f"sdk.dir={ANDROID_HOME}\n")
-    if not os.path.exists(sdkmanager):
-        print(f"\n  {R}✗{N} Falha ao instalar Android SDK!")
-        raise SystemExit(1)
-    print(f"\n  {R}✔{N} Android SDK instalado com sucesso!\n")
-
 def configurar():
-    h("CONFIGURAR AMBIENTE")
-    instalar_java()
-    instalar_git()
-    instalar_opencode()
-    instalar_android_sdk()
-    os.environ["ANDROID_HOME"] = ANDROID_HOME
-    os.environ["ANDROID_SDK_ROOT"] = ANDROID_HOME
-    os.environ["PATH"] = os.path.join(ANDROID_HOME, "cmdline-tools", "latest", "bin") + ":" + os.path.join(ANDROID_HOME, "platform-tools") + ":" + os.environ["PATH"]
-    print(f"\n  {R}✔{N} Ambiente configurado!\n")
+    h("CONFIGURAR AMBIENTE + PROJETO")
+    run(f"python3 {shlex.quote(CONFIGURAR_PROJETO)} tudo", check=False)
 
-def fix_kotlin_version():
-    toml_path = os.path.join(PROJETO, "gradle", "libs.versions.toml")
-    if not os.path.exists(toml_path):
-        return
-    with open(toml_path, "r") as f:
-        content = f.read()
-    import re
-    match = re.search(r'^kotlin\s*=\s*"([^"]+)"', content, re.MULTILINE)
-    if not match:
-        return
-    ver = match.group(1)
-    parts = ver.split(".")
-    if len(parts) >= 2:
-        major, minor = int(parts[0]), int(parts[1])
-        if major > 2 or (major == 2 and minor > 0):
-            print(f"  {A}→{N} Corrigindo Kotlin {ver} -> 2.0.21 (compatibilidade R8)...")
-            new_content = re.sub(r'^kotlin\s*=\s*"[^"]+"', 'kotlin = "2.0.21"', content, count=1, flags=re.MULTILINE)
-            with open(toml_path, "w") as f:
-                f.write(new_content)
-            print(f"  {R}✔{N} Kotlin corrigido!\n")
+def configurar_ambiente():
+    h("CONFIGURAR AMBIENTE")
+    run(f"python3 {shlex.quote(CONFIGURAR_PROJETO)} ambiente", check=False)
+
+def configurar_projeto():
+    h("CONFIGURAR PROJETO")
+    run(f"python3 {shlex.quote(CONFIGURAR_PROJETO)} projeto", check=False)
+
+def detectar_projeto():
+    h("DETECTAR PROJETO")
+    run(f"python3 {shlex.quote(CONFIGURAR_PROJETO)} detectar", check=False)
 
 def buildar():
     h("BUILDAR APK")
@@ -166,9 +76,8 @@ def buildar():
     tipo = input(f"\n  {R}❯{N} ").strip()
     if tipo in ("1", "2", "3"):
         tipo_map = {"1": "debug", "2": "release", "3": "appbundle"}
-        fix_kotlin_version()
         run(f"bash {shlex.quote(BUILD_APK)} {tipo_map[tipo]}", check=False)
-        print(f"\n  {R}✔{N} Build salvo em apks/\n")
+        print(f"\n  {OK}✔{N} Build salvo em apks/\n")
     else:
         print(f"\n  {R}!{N} Opcao invalida\n")
 
@@ -186,22 +95,24 @@ def backup():
 
     arquivos = [
         "app.py",
-        "build-apk.sh",
-        "editar-informacoes.py",
-        "fix-adb.sh",
-        "configurar_de.py",
-        "buildar.py",
-        "configurar_gradle84.py",
-        "atualizar.py",
+        ".alisu/build-apk.sh",
+        ".alisu/editar-informacoes.py",
+        ".alisu/fix-adb.sh",
+        ".alisu/configurar_de.py",
+        ".alisu/configurar_projeto.py",
+        ".alisu/buildar.py",
+        ".alisu/atualizar.py",
+        ".alisu/pack.py",
+        ".alisu/restaurar_backup.py",
+        ".alisu/_common.sh",
+        ".alisu/fix_aapt2_arm64.sh",
+        ".alisu/config_check.sh",
         "version.txt",
         "AGENTS.md",
         "opencode.json",
     ]
 
-    projeto_arquivos = [
-        "pack.py",
-        "restaurar_backup.py",
-    ]
+    projeto_arquivos = []
 
     print(f"  {A}→{N} Criando backup: {nome_zip}")
 
@@ -210,20 +121,20 @@ def backup():
             orig = os.path.join(BASE, arq)
             if os.path.exists(orig):
                 zf.write(orig, arq)
-                print(f"    {R}+{N} {arq}")
+                print(f"    {OK}+{N} {arq}")
             else:
-                print(f"    {A}~{N} {arq} (ignorado, nao existe)")
+                print(f"    {A}~{N} {arq} (ignorado)")
 
         for arq in projeto_arquivos:
             orig = os.path.join(PROJETO, arq)
             if os.path.exists(orig):
                 zf.write(orig, f"projeto/{arq}")
-                print(f"    {R}+{N} projeto/{arq}")
+                print(f"    {OK}+{N} projeto/{arq}")
             else:
-                print(f"    {A}~{N} projeto/{arq} (ignorado, nao existe)")
+                print(f"    {A}~{N} projeto/{arq} (ignorado)")
 
     tamanho = os.path.getsize(caminho_zip) / 1024
-    print(f"\n  {R}✔{N} Backup salvo: Backup/ferramenta/{nome_zip} ({tamanho:.1f} KB)\n")
+    print(f"\n  {OK}✔{N} Backup salvo: Backup/ferramenta/{nome_zip} ({tamanho:.1f} KB)\n")
 
 def restaurar():
     h("RESTAURAR BACKUP")
@@ -256,13 +167,18 @@ def restaurar():
 
     arquivos = [
         "app.py",
-        "build-apk.sh",
-        "editar-informacoes.py",
-        "fix-adb.sh",
-        "configurar_de.py",
-        "buildar.py",
-        "configurar_gradle84.py",
-        "atualizar.py",
+        ".alisu/build-apk.sh",
+        ".alisu/editar-informacoes.py",
+        ".alisu/fix-adb.sh",
+        ".alisu/configurar_de.py",
+        ".alisu/configurar_projeto.py",
+        ".alisu/buildar.py",
+        ".alisu/atualizar.py",
+        ".alisu/pack.py",
+        ".alisu/restaurar_backup.py",
+        ".alisu/_common.sh",
+        ".alisu/fix_aapt2_arm64.sh",
+        ".alisu/config_check.sh",
         "version.txt",
         "AGENTS.md",
         "opencode.json",
@@ -274,7 +190,7 @@ def restaurar():
         for arq in arquivos:
             if arq in zf.namelist():
                 zf.extract(arq, BASE)
-                print(f"    {R}+{N} {arq}")
+                print(f"    {OK}+{N} {arq}")
 
         projeto_files = [f for f in zf.namelist() if f.startswith("projeto/")]
         if projeto_files:
@@ -282,9 +198,9 @@ def restaurar():
             os.makedirs(projeto_dst, exist_ok=True)
             for f in projeto_files:
                 zf.extract(f, BASE)
-            print(f"    {R}+{N} projeto/ (restaurado)")
+            print(f"    {OK}+{N} projeto/ (restaurado)")
 
-    print(f"\n  {R}✔{N} Backup restaurado com sucesso!\n")
+    print(f"\n  {OK}✔{N} Backup restaurado com sucesso!\n")
 
 def reiniciar():
     h("REINICIAR PROJETO")
@@ -292,19 +208,17 @@ def reiniciar():
 
 def backup_projeto():
     h("BACKUP DO PROJETO")
-    pack_path = os.path.join(PROJETO, "pack.py")
-    if not os.path.exists(pack_path):
-        print(f"  {R}!{N} pack.py nao encontrado em projeto/\n")
+    if not os.path.exists(PACK):
+        print(f"  {R}!{N} pack.py nao encontrado em .alisu/\n")
         return
-    run(f"python3 {shlex.quote(pack_path)}", cwd=PROJETO)
+    run(f"python3 {shlex.quote(PACK)}", cwd=PROJETO)
 
 def restaurar_projeto():
     h("RESTAURAR PROJETO")
-    restore_path = os.path.join(PROJETO, "restaurar_backup.py")
-    if not os.path.exists(restore_path):
-        print(f"  {R}!{N} restaurar_backup.py nao encontrado em projeto/\n")
+    if not os.path.exists(RESTAURAR):
+        print(f"  {R}!{N} restaurar_backup.py nao encontrado em .alisu/\n")
         return
-    run(f"python3 {shlex.quote(restore_path)}", cwd=PROJETO)
+    run(f"python3 {shlex.quote(RESTAURAR)}", cwd=PROJETO)
 
 def menu_config():
     while True:
@@ -347,14 +261,14 @@ def editar_info():
     if vn:
         run(f"bash {shlex.quote(EDITAR)} nomeversao {shlex.quote(vn)}")
 
-    print(f"\n  {R}✔{N} Informacoes atualizadas!\n")
+    print(f"\n  {OK}✔{N} Informacoes atualizadas!\n")
 
 def corrigir_adb():
     h("CORRIGIR ADB")
     run(f"bash {shlex.quote(FIX_ADB)}", check=False)
 
 def configurar_de():
-    h("CONFIGURAR DE/ PRA GRADLE 8.4 + API 35")
+    h("CONFIGURAR DE/ PRA GRADLE 8.13 + API 37")
     run(f"python3 {shlex.quote(CONFIGURAR_DE)}", check=False)
 
 def verificar_atualizacoes():
@@ -392,21 +306,25 @@ def menu():
         print(f"  {B}╚══════════════════════════╝{N}")
         if tem_update:
             print(f"\n  {R}0{N}  ★ Atualizacao disponivel!")
-        print(f"\n  {R}1{N}  Configurar ambiente")
+        print(f"\n  {R}1{N}  Configurar ambiente + projeto")
         print(f"  {R}2{N}  Buildar APK")
         print(f"  {R}3{N}  Backup do projeto")
         print(f"  {R}4{N}  Restaurar projeto")
         print(f"  {R}5{N}  Backup da ferramenta")
-        print(f"  {R}6{N}  Editar informacoes")
-        print(f"  {R}7{N}  Corrigir ADB")
-        print(f"  {R}8{N}  Configurar de/ (Gradle 8.4 + API 35)")
-        print(f"  {R}9{N}  Sair")
+        print(f"  {R}6{N}  Restaurar ferramenta")
+        print(f"  {R}7{N}  Editar informacoes")
+        print(f"  {R}8{N}  Corrigir ADB")
+        print(f"  {R}9{N}  Detectar projeto")
+        print(f"  {R}x{N}  Sair")
         print(f"\n  {A}by alisu{N}")
         op = input(f"\n  {R}❯{N} ").strip()
 
         if op == "0" and tem_update:
             atualizar()
             tem_update = False
+        elif op == "x" or op == "X":
+            print(f"\n  {A}★ volte sempre ★{N}\n")
+            break
         elif op == "1":
             configurar()
         elif op == "2":
@@ -418,14 +336,13 @@ def menu():
         elif op == "5":
             backup()
         elif op == "6":
-            editar_info()
+            restaurar()
         elif op == "7":
-            corrigir_adb()
+            editar_info()
         elif op == "8":
-            configurar_de()
+            corrigir_adb()
         elif op == "9":
-            print(f"\n  {A}★ volte sempre ★{N}\n")
-            break
+            detectar_projeto()
         else:
             print(f"\n  {R}!{N} Opcao invalida\n")
 
