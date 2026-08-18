@@ -238,83 +238,52 @@ def install_sdk():
         return True
 
     tmp = "/tmp/cmdline-tools.zip"
-
-    MIN_SIZE = 100_000_000  # 100MB - zip real tem ~180MB
+    MIN_SIZE = 100_000_000
 
     if os.path.exists(tmp) and os.path.getsize(tmp) > MIN_SIZE:
         log(f"Zip ja existe ({os.path.getsize(tmp) // 1024}KB), usando...")
-        downloaded = True
     else:
         if os.path.exists(tmp):
-            log(f"Zip invalido ({os.path.getsize(tmp) // 1024}KB < {MIN_SIZE // 1024}KB), removendo...")
             subprocess.run(["rm", "-f", tmp], check=False)
-        log("Baixando Android SDK cmdline-tools...")
+
+        log("Baixando Android SDK cmdline-tools do Google...")
         os.makedirs(ANDROID_HOME, exist_ok=True)
 
-        urls = [
-            "https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip",
-            "https://dl.google.com/android/repository/commandlinetools-linux-11391160_latest.zip",
-            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip",
-        ]
+        url = "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
 
-        downloaded = False
         has_aria2 = subprocess.run(["which", "aria2c"], capture_output=True).returncode == 0
         has_wget = subprocess.run(["which", "wget"], capture_output=True).returncode == 0
 
-        for url in urls:
-            fname = url.split("/")[-1]
-            current_size = os.path.getsize(tmp) if os.path.exists(tmp) else 0
-            if current_size > 0:
-                log(f"Retomando {fname} ({current_size // 1024}KB ja baixados)...")
-            else:
-                log(f"Baixando {fname}...")
+        if has_aria2:
+            log("aria2c - 8 conexoes simultaneas")
+            subprocess.run([
+                "aria2c", "-x", "8", "-s", "8", "-k", "1M",
+                "--connect-timeout=15", "--max-tries=3",
+                "--continue=true",
+                "-d", "/tmp", "-o", "cmdline-tools.zip",
+                url
+            ])
+        elif has_wget:
+            log("wget com resume")
+            subprocess.run([
+                "wget", "-q", "--show-progress",
+                "--tries=3", "--timeout=15",
+                "-c", "-O", tmp, url
+            ])
+        else:
+            log("curl com resume")
+            subprocess.run([
+                "curl", "-C", "-",
+                "--connect-timeout", "15", "--max-time", "1800",
+                "--retry", "2", "--retry-delay", "3",
+                "-fSL", "-o", tmp, url
+            ])
 
-            if has_aria2:
-                log("usando aria2c (rapido, 8 conexoes)...")
-                result = subprocess.run([
-                    "aria2c", "-x", "8", "-s", "8", "-k", "1M",
-                    "--connect-timeout=15", "--max-tries=3",
-                    "--continue=true",
-                    "-d", "/tmp", "-o", "cmdline-tools.zip",
-                    url
-                ])
-            elif has_wget:
-                log("usando wget (com resume)...")
-                result = subprocess.run([
-                    "wget", "-q", "--show-progress",
-                    "--tries=3", "--timeout=15",
-                    "-c", "-O", tmp, url
-                ])
-            else:
-                log("usando curl (com resume)...")
-                result = subprocess.run([
-                    "curl", "-C", "-",
-                    "--connect-timeout", "15", "--max-time", "1800",
-                    "--retry", "2", "--retry-delay", "3",
-                    "-fSL", "-o", tmp, url
-                ])
+        if not os.path.exists(tmp) or os.path.getsize(tmp) < MIN_SIZE:
+            err("Download falhou ou incompleto")
+            return False
 
-            if result.returncode != 0:
-                sz = os.path.getsize(tmp) // 1024 if os.path.exists(tmp) else 0
-                log(f"Falha no download ({sz}KB baixados)")
-                continue
-            if os.path.exists(tmp) and os.path.getsize(tmp) > MIN_SIZE:
-                downloaded = True
-                log(f"Download OK ({os.path.getsize(tmp) // 1024}KB)")
-                break
-            else:
-                sz = os.path.getsize(tmp) // 1024 if os.path.exists(tmp) else 0
-                log(f"Arquivo invalido ({sz}KB < {MIN_SIZE // 1024}KB)")
-
-    if not downloaded:
-        err("Falha ao baixar cmdline-tools")
-        log("Tentando install via apt...")
-        result = subprocess.run(["apt-get", "install", "-y", "google-android-cmdline-tools"], capture_output=True)
-        if result.returncode == 0 and os.path.exists(sdkmanager):
-            ok("Android SDK instalado via apt")
-            return True
-        err("Nao foi possivel baixar o SDK")
-        return False
+        log(f"Download OK ({os.path.getsize(tmp) // 1024}KB)")
 
     log("Extraindo...")
     subprocess.run(["rm", "-rf", "/tmp/sdk"], check=False)
