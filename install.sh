@@ -2,69 +2,48 @@
 
 set -e
 
-URL="https://github.com/Alisuuu/Gradlexed/releases/latest/download/Gradlexed.zip"
-DIR="$(pwd)"
+URL="https://github.com/Alisuuu/Gradlexed/archive/refs/heads/main.zip"
 TMP="/tmp/gradlexed"
+DIR="$(pwd)"
 
-echo "[*] Verificando ambiente..."
-
-if [ ! -d "$DIR" ]; then
-    echo "[!] Diretório inválido."
-    exit 1
-fi
+echo "[*] Verificando dependências..."
 
 command -v curl >/dev/null 2>&1 || {
-    echo "[*] Instalando curl..."
     apt update && apt install -y curl
 }
 
 command -v unzip >/dev/null 2>&1 || {
-    echo "[*] Instalando unzip..."
     apt update && apt install -y unzip
 }
 
 command -v python3 >/dev/null 2>&1 || {
-    echo "[*] Instalando Python..."
     apt update && apt install -y python3
 }
 
-echo "[*] Baixando..."
+echo "[*] Baixando Gradlexed..."
 
 rm -rf "$TMP"
 mkdir -p "$TMP"
 
-curl -fL "$URL" -o "$TMP/app.zip"
-
-if ! file "$TMP/app.zip" | grep -qi zip; then
-    echo "[!] O download não é um ZIP válido."
-    exit 1
-fi
+curl -fL "$URL" -o "$TMP/main.zip"
 
 echo "[*] Extraindo..."
 
-unzip -q -o "$TMP/app.zip" -d "$TMP/extracted"
+unzip -q -o "$TMP/main.zip" -d "$TMP"
 
-echo "[*] Instalando arquivos..."
+ROOT="$TMP/Gradlexed-main"
 
-# Se o ZIP tiver uma pasta única, entra nela
-ROOT="$TMP/extracted"
-
-COUNT=$(find "$ROOT" -mindepth 1 -maxdepth 1 -type d | wc -l)
-
-if [ "$COUNT" = "1" ] && [ "$(find "$ROOT" -mindepth 1 -maxdepth 1 -type f | wc -l)" = "0" ]; then
-    ROOT="$(find "$ROOT" -mindepth 1 -maxdepth 1 -type d | head -1)"
+if [ ! -d "$ROOT" ]; then
+    echo "[!] Estrutura do ZIP inválida."
+    exit 1
 fi
+
+echo "[*] Copiando arquivos para: $DIR"
 
 cp -af "$ROOT"/. "$DIR"/
 
 rm -rf "$TMP"
 
-echo "[✓] Instalação concluída."
+echo "[✓] Concluído."
 
-if [ -f "$DIR/app.py" ]; then
-    echo "[*] Executando app.py..."
-    exec python3 "$DIR/app.py"
-else
-    echo "[!] app.py não encontrado."
-    exit 1
-fi
+exec python3 "$DIR/app.py"
