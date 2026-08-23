@@ -22,23 +22,51 @@ command -v python3 >/dev/null 2>&1 || {
     apt install -y python3
 }
 
-echo "[*] Baixando..."
+echo "[*] Preparando..."
 
 rm -rf "$TMP"
-mkdir -p "$TMP"
+mkdir -p "$TMP/extracted"
+
+echo "[*] Baixando..."
 
 curl -fL "$URL" -o "$TMP/backup.zip"
 
-echo "[*] Extraindo diretamente em /..."
+echo "[*] Extraindo..."
 
-unzip -q -o "$TMP/backup.zip" -d /
+unzip -q -o "$TMP/backup.zip" -d "$TMP/extracted"
+
+echo "[*] Localizando app.py..."
+
+APP=$(find "$TMP/extracted" -type f -name "app.py" -print -quit)
+
+if [ -z "$APP" ]; then
+    echo "[!] app.py não encontrado no backup."
+    echo
+    echo "[*] Conteúdo encontrado:"
+    find "$TMP/extracted" -maxdepth 3 -type f
+    exit 1
+fi
+
+BASE=$(dirname "$APP")
+
+echo "[*] Instalando conteúdo de:"
+echo "    $BASE"
+echo
+echo "[*] Destino: /"
+
+cp -af "$BASE"/. /
 
 rm -rf "$TMP"
 
+if [ ! -f /app.py ]; then
+    echo "[!] Erro: /app.py não foi instalado."
+    exit 1
+fi
+
 echo
 echo "[✓] Instalação concluída."
-echo "[*] Arquivos instalados em /"
-echo "[*] Iniciando /app.py..."
+echo "[✓] /app.py encontrado."
+echo "[*] Iniciando..."
 echo
 
 exec python3 /app.py
