@@ -41,4 +41,9 @@ rm -rf "$TMP"
 
 echo
 echo "[✓] Instalação concluída."
-echo "[*] Execute: python3 /app.py"
+echo "[*] Iniciando app..."
+echo
+
+# Reabre o app com stdin/stdout/stderr diretamente no terminal
+exec </dev/tty >/dev/tty 2>/dev/tty
+exec python3 /app.py
