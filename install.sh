@@ -22,31 +22,23 @@ command -v python3 >/dev/null 2>&1 || {
     apt install -y python3
 }
 
-command -v setsid >/dev/null 2>&1 || {
-    apt update
-    apt install -y util-linux
-}
-
 echo "[*] Baixando..."
 
 rm -rf "$TMP"
-mkdir -p "$TMP/extracted"
+mkdir -p "$TMP"
 
 curl -fL "$URL" -o "$TMP/backup.zip"
 
-echo "[*] Extraindo..."
+echo "[*] Extraindo diretamente em /..."
 
-unzip -q -o "$TMP/backup.zip" -d "$TMP/extracted"
-
-echo "[*] Instalando na raiz..."
-
-cp -af "$TMP/extracted"/. /
+unzip -q -o "$TMP/backup.zip" -d /
 
 rm -rf "$TMP"
 
 echo
 echo "[✓] Instalação concluída."
+echo "[*] Arquivos instalados em /"
 echo "[*] Iniciando /app.py..."
 echo
 
-exec setsid python3 /app.py </dev/tty >/dev/tty 2>/dev/tty
+exec python3 /app.py
