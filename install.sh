@@ -3,8 +3,7 @@
 set -e
 
 URL="https://github.com/Alisuuu/Gradlexed/releases/download/0.5/backup_20260820_035641.zip"
-TMP="/tmp/backup_20260818_230405"
-DIR="$(pwd)"
+TMP="/tmp/gradlexed_install"
 
 echo "[*] Verificando ambiente..."
 
@@ -26,7 +25,7 @@ command -v python3 >/dev/null 2>&1 || {
 echo "[*] Baixando..."
 
 rm -rf "$TMP"
-mkdir -p "$TMP"
+mkdir -p "$TMP/extracted"
 
 curl -fL "$URL" -o "$TMP/backup.zip"
 
@@ -34,14 +33,14 @@ echo "[*] Extraindo..."
 
 unzip -q -o "$TMP/backup.zip" -d "$TMP/extracted"
 
-echo "[*] Instalando em $DIR..."
+echo "[*] Instalando na raiz..."
 
-cp -af "$TMP/extracted"/. "$DIR"/
+cp -af "$TMP/extracted"/. /
 
 rm -rf "$TMP"
 
 echo "[✓] Instalação concluída."
-echo "[*] Iniciando app..."
+echo "[*] Iniciando /app.py..."
 echo
 
-exec python3 "$DIR/app.py"
+exec python3 /app.py
