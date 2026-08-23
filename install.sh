@@ -29,11 +29,11 @@ mkdir -p "$TMP/extracted"
 
 curl -fL "$URL" -o "$TMP/backup.zip"
 
-echo "[*] Extraindo..."
+echo "[*] Extraindo na raiz..."
 
 unzip -q -o "$TMP/backup.zip" -d "$TMP/extracted"
 
-echo "[*] Instalando na raiz..."
+echo "[*] Instalando arquivos em /..."
 
 cp -af "$TMP/extracted"/. /
 
@@ -43,4 +43,4 @@ echo "[✓] Instalação concluída."
 echo "[*] Iniciando /app.py..."
 echo
 
-exec python3 /app.py
+exec python3 /app.py </dev/tty
