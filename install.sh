@@ -22,6 +22,11 @@ command -v python3 >/dev/null 2>&1 || {
     apt install -y python3
 }
 
+command -v setsid >/dev/null 2>&1 || {
+    apt update
+    apt install -y util-linux
+}
+
 echo "[*] Baixando..."
 
 rm -rf "$TMP"
@@ -41,9 +46,7 @@ rm -rf "$TMP"
 
 echo
 echo "[✓] Instalação concluída."
-echo "[*] Iniciando app..."
+echo "[*] Iniciando /app.py..."
 echo
 
-# Reabre o app com stdin/stdout/stderr diretamente no terminal
-exec </dev/tty >/dev/tty 2>/dev/tty
-exec python3 /app.py
+exec setsid python3 /app.py </dev/tty >/dev/tty 2>/dev/tty
